@@ -1,0 +1,6 @@
+analysis/*
+bin/*
+vendor/*
+tags
+.phpcd
+.phplint-cache
