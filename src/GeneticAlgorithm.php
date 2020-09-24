@@ -4,9 +4,7 @@ namespace EvoComp;
 
 use EvoComp\CrossoverOperator\CrossoverOperatorInterface;
 use EvoComp\MutationOperator\MutationOperatorInterface;
-use EvoComp\SelectionEngine\RouletteWheelSelection;
-use EvoComp\SelectionEngine\RankSelection;
-use EvoComp\SelectionEngine\TournamentSelection;
+use EvoComp\SelectionEngine\SelectionEngineAbstract;
 use EvoComp\SelectionEngine\ElitismSelection;
 use RuntimeException;
 
@@ -23,7 +21,7 @@ class GeneticAlgorithm
 
     protected $mutationRate;
 
-    protected $elitistPreserveRate;
+    protected $elitismPreserveRate;
 
     protected $chromosomeSize;
 
@@ -57,20 +55,20 @@ class GeneticAlgorithm
      * @param $populationSize = 100
      * @param $generationLimit = 50
      * @param $mutationRate = 2
-     * @param $elitistPreserveRate = 20
+     * @param $elitismPreserveRate = 20
      */
     public function __construct(
         $populationSize = 100,
         $generationLimit = 50,
         $crossoverRate = 80,
         $mutationRate = 2,
-        $elitistPreserveRate = 20
+        $elitismPreserveRate = 20
     ) {
         $this->populationSize = $populationSize;
         $this->generationLimit = $generationLimit;
         $this->crossoverRate = $crossoverRate / 100;
         $this->mutationRate = $mutationRate / 100;
-        $this->elitistPreserveRate = $elitistPreserveRate;
+        $this->elitismPreserveRate = $elitismPreserveRate / 100;
 
         $this->chromosomeSize = 0;
         $this->allowSameParentCrossover = true;
@@ -193,6 +191,8 @@ class GeneticAlgorithm
 
     protected function generatePopulation()
     {
+        $this->population = [];
+
         for ($i = 0; $i < $this->populationSize; $i++) {
             $this->population[] = $this->generateChromosome();
         }
@@ -251,7 +251,7 @@ class GeneticAlgorithm
     {
         //return abs($word3 - ($word1 + $word2));
         return 100000 - abs($word3 - ($word1 + $word2));
-        //return 10001 - abs($word3 - ($word1 + $word2));
+        //return 100001 - abs($word3 - ($word1 + $word2));
     }
 
     public function run()
@@ -290,7 +290,13 @@ class GeneticAlgorithm
                     if (!$this->hasConverged) { // test if has previously converged
                         $this->hasConverged = true;
                         $this->convergedGeneration = $generation;
-                        $this->firstSolution = $chromosome;
+                        $this->firstSolution = [
+                            'chromosome' => $chromosome,
+                            'w1' => $word1,
+                            'w2' => $word2,
+                            'w3' => $word3,
+                            'result' => ($word1 + $word2),
+                        ];
                         $this->populationSnapshot = $this->population;
                     }
                 }
@@ -315,6 +321,7 @@ class GeneticAlgorithm
             $offspring = $this->crossover($selectedParents, $offspringSize);
 
             $this->mutation($offspring, $offspringSize, $mutationLimit);
+
 
             //offspring fitness
             $offspringFitness = [];
@@ -411,7 +418,37 @@ class GeneticAlgorithm
     {
         switch ($this->reinsertionMethod) {
         case 'r1':
+            $selectionMethod = new ElitismSelection();
+
+            $selectionMethod->setPopulation(array_merge($population, $offspring))
+                ->setIsGlobal(true);
+
+            $nextGen = $selectionMethod->select($this->populationSize);
+
+            shuffle($nextGen); // shuffle next generation
+
+            $this->population = $nextGen;
+
+            return;
+
         case 'r2':
+            $selectionMethod = new ElitismSelection();
+
+            $selectionMethod->setPopulation(array_merge($population, $offspring))
+                ->setIsGlobal(true);
+
+            $selectedParents = $selectionMethod->select(0); // elitism rate will be used
+
+            $nextGen = array_column($offspring, 'chromosome');
+
+            $nextGen = array_merge($nextGen, $selectedParents);
+
+            shuffle($nextGen);
+
+            $this->population = $nextGen;
+
+            return;
+
         default:
             throw new RuntimeException("Reinsertion Methods not informed");
         }

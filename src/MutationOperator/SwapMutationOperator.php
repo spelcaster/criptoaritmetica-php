@@ -25,10 +25,11 @@ class SwapMutationOperator implements MutationOperatorInterface
     public function mutation(array $chromosome)
     {
         $swapCounter = 0;
+        $size = count($chromosome) - 1;
 
         while ($swapCounter < $this->swapLimit) {
-            $posA = mt_rand(0, count($chromosome) - 1);
-            $posB = mt_rand(0, count($chromosome) - 1);
+            $posA = mt_rand(0, $size);
+            $posB = mt_rand(0, $size);
 
             if (!$this->applySwap($posA, $posB, $chromosome)) {
                 continue;

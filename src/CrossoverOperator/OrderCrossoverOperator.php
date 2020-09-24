@@ -3,10 +3,10 @@
 namespace EvoComp\CrossoverOperator;
 
 /**
- * Class PartiallyMappedCrossoverOperator
+ * Class OrderCrossoverOperator
  * @author yourname
  */
-class PartiallyMappedCrossoverOperator implements CrossoverOperatorInterface
+class OrderCrossoverOperator implements CrossoverOperatorInterface
 {
     public function crossover(array $parentA, array $parentB)
     {
@@ -58,44 +58,26 @@ class PartiallyMappedCrossoverOperator implements CrossoverOperatorInterface
             $offspring[$i] = $p1[$i];
         }
 
-        $other = [];
-        $me = [];
-        for ($i = $segment[0]; $i <= $segment[1]; $i++) {
-            if (in_array($p2[$i], $offspring)) {
+        $divider = count($p1);
+
+        $current = ($segment[1] + 1) % $divider;
+        $j = $current;
+        while ($j != $segment[0]) {
+            if (!isset($p2[$current])) {
+                var_dump($current, $p2);
+                die();
+            }
+            $char = $p2[$current];
+
+            if (in_array($char, $offspring)) {
+                $current = ++$current % $divider;
                 continue;
             }
 
-            $other[] = $p2[$i];
-            $me[] = $p1[$i];
-        }
+            $offspring[$j] = $char;
 
-        for ($i = 0; $i < count($other); $i++) {
-            $myValue = $me[$i];
-
-            $key = array_search($myValue, $p2);
-
-            while (($key !== false) && isset($offspring[$key])) {
-                $myValue = $p1[$key];
-                $key = array_search($myValue, $p2);
-
-                if ($key === false) {
-                    break;
-                }
-            }
-
-            if ($key === false) { // gene not present in p2
-                continue;
-            }
-
-            $offspring[$key] = $other[$i];
-        }
-
-        for ($i = 0; $i < count($p2); $i++) {
-            if (isset($offspring[$i])) {
-                continue;
-            }
-
-            $offspring[$i] = $p2[$i];
+            $j = ++$j % $divider;
+            $current = ++$current % $divider;
         }
 
         ksort($offspring);

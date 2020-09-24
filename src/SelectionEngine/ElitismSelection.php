@@ -32,6 +32,10 @@ class ElitismSelection extends SelectionEngineAbstract
 
         $selectSize = (int) ($this->elitismRate * $this->populationSize);
 
+        if ($selectionLimit !== 0) {
+            $selectSize = $selectionLimit;
+        }
+
         $selected = array_slice($this->population, 0, $selectSize);
 
         return array_column($selected, 'chromosome');

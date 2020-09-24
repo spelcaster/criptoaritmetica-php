@@ -62,7 +62,7 @@ abstract class SelectionEngineAbstract
 
     public function setIsGlobal($isGlobal = false)
     {
-        $this->isGlobal = $isglobal;
+        $this->isGlobal = $isGlobal;
 
         return $this;
     }

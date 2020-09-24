@@ -17,7 +17,7 @@ class TournamentSelection extends SelectionEngineAbstract
         parent::__construct($allowRepetition);
 
         $this->participants = 3;
-        $this->rounds = 10;
+        $this->rounds = 3;
     }
 
     public function setRounds($rounds)
@@ -64,9 +64,6 @@ class TournamentSelection extends SelectionEngineAbstract
             ++$i;
         }
 
-        var_dump($selected);
-        die();
-
         return $selected;
     }
 
@@ -91,14 +88,17 @@ class TournamentSelection extends SelectionEngineAbstract
         $prop = $this->getRelativeFitnessProp();
         $epsilon = 0.0000000005;
 
+        $limit = $participantLimit;
+
         if ($lastWinner) {
+            --$limit;
             $participants[] = $lastWinner;
         }
 
-        for ($i = 0; $i < $participantLimit; $i++) {
-            $pos = mt_rand(0, $this->populationSize);
+        for ($i = 0; $i < $limit; $i++) {
+            $pos = mt_rand(0, ($this->populationSize - 1));
 
-            $participant = $this->population[$i];
+            $participant = $this->population[$pos];
 
             $participant['index'] = $pos;
 

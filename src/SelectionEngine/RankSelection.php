@@ -44,7 +44,7 @@ class RankSelection extends SelectionEngineAbstract
 
     protected function draw()
     {
-        $pos = mt_rand(0, $this->populationSize);
+        $pos = mt_rand(0, ($this->populationSize - 1));
 
         return [
             $pos => $this->population[$pos]['chromosome'],

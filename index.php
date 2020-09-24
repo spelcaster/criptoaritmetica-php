@@ -3,39 +3,55 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
-use EvoComp\MutationOperator\SwapMutationOperator;
 use EvoComp\CrossoverOperator\CycleCrossoverOperator;
 use EvoComp\CrossoverOperator\PartiallyMappedCrossoverOperator;
+use EvoComp\CrossoverOperator\SinglePointCrossoverOperator;
+use EvoComp\CrossoverOperator\OrderCrossoverOperator;
 use EvoComp\GeneticAlgorithm;
+use EvoComp\MutationOperator\SwapMutationOperator;
+use EvoComp\SelectionEngine\ElitismSelection;
+use EvoComp\SelectionEngine\RankSelection;
+use EvoComp\SelectionEngine\RouletteWheelSelection;
+use EvoComp\SelectionEngine\TournamentSelection;
 
 $allowGeneRepetition = false;
 $allowSameParentCrossover = false;
 
-$selectionEngine = new RouletteWheelSelection($allowSameParentCrossover);
-//$selectionMethod = new RankSelection($this->allowSameParentCrossover);
-//$selectionMethod = new TournamentSelection($this->allowSameParentCrossover);
-//$selectionMethod = new ElitismSelection($this->allowSameParentCrossover);
+//$tm = 2; // TM1
+//$tm = 10; // TM2
+//$tm = 20; // TM3
+$tm = 1;
 
-$crossoverOperator = new CycleCrossoverOperator();
-//$crossoverOperator = new PartiallyMappedCrossoverOperator();
-//var_dump($crossoverOperator->crossover([0, 1,], [2, 3,]));
-//var_dump($crossoverOperator->crossover([1, 2, 3, 4], [4, 3, 2, 1]));
-//var_dump($crossoverOperator->crossover([1, 2, 3, 4], [4, 3, 2, 5]));
-//var_dump($crossoverOperator->crossover([1, 2, 3, 4, 5, 6, 7], [5, 4, 6, 7, 2, 3, 1]));
+//$selectionEngine = new RouletteWheelSelection($allowSameParentCrossover); // S1
+$selectionEngine = new RankSelection($allowSameParentCrossover); // S2
+//$selectionEngine = new TournamentSelection($allowSameParentCrossover); // S3
+//$selectionEngine = new ElitismSelection($allowSameParentCrossover);
+
+//$crossoverOperator = new CycleCrossoverOperator(); // C1
+$crossoverOperator = new PartiallyMappedCrossoverOperator(); // C2
+//$crossoverOperator = new SinglePointCrossoverOperator();
+//$crossoverOperator = new OrderCrossoverOperator();
 
 $mutationOperator = new SwapMutationOperator();
-//var_dump($c, $mutationOperator->mutation([0,1,2,3,4,5,6,7]));
 
 $ga = new GeneticAlgorithm(
-    100, //$populationSize
-    50, // $generationLimit
-    80, // $crossoverRate
-    20, // $mutationRate
-    20 // $elitistPreserveRate
+    240, //$populationSize
+    25, // $generationLimit
+    85, // $crossoverRate
+    $tm, // $mutationRate
+    15 // $elitistPreserveRate
 );
 
-$ga->setProblem("send", "more", "money")
-    ->setAllowGeneRepetition($allowGeneRepetition)
+$ga->setReinsertionMethod('r1');  // R1
+//$ga->setReinsertionMethod('r2'); // R2
+
+$ga->setProblem("send", "more", "money");
+//$ga->setProblem("eat", "that", "apple");
+//$ga->setProblem("cross", "roads", "danger");
+//$ga->setProblem("coca", "cola", "oasis");
+//$ga->setProblem("donald", "gerald", "robert");
+
+$ga->setAllowGeneRepetition($allowGeneRepetition)
     ->setAllowSameParentCrossover($allowSameParentCrossover)
     ->setSelectionEngine($selectionEngine)
     ->setCrossoverOperator($crossoverOperator)
@@ -51,6 +67,8 @@ $convergenceCounter = 0;
 $avgConvergence = 0.0;
 $avgTime = 0.0;
 
+$avgConvergedGeneration = 0.0;
+
 $benchmark = [
     'id' => $executionId,
     'run' => [],
@@ -64,6 +82,7 @@ for ($i = 0; $i < $totalExecution; $i++) {
         'has_converged' => false,
         'generation_converged' => false,
         'execution_time' => -1,
+        'converged_generation' => -1,
     ];
 
     $executionStart = microtime(true);
@@ -86,26 +105,33 @@ for ($i = 0; $i < $totalExecution; $i++) {
         ++$convergenceCounter;
 
         $snapshotFile = $executionPath . DIRECTORY_SEPARATOR . "{$i}-result.json";
+        $avgConvergedGeneration += $ga->getConvergedGeneration();
 
         $result = [
+            'generation' => $ga->getConvergedGeneration(),
             'population' => $ga->getPopulationSnapshot(),
-            'solution' => $ga->getFirstSolution(),
+            'first_solution' => $ga->getFirstSolution(),
         ];
 
         file_put_contents($snapshotFile, json_encode($result));
     }
 }
 
-$avgConvergence = $convergenceCounter / $totalExecution;
+if ($convergenceCounter) {
+    $avgConvergence = $convergenceCounter / $totalExecution;
+    $avgConvergedGeneration = $avgConvergedGeneration / $convergenceCounter;
+}
+
 $avgTime = $executionTime / $totalExecution;
 
 $benchmark['stats'] = [
     'execution_time' => $avgTime,
     'convergence_rate' => $avgConvergence,
+    'average_generation' => $avgConvergedGeneration,
 ];
 
-var_dump($benchmark['id']);
-var_dump($benchmark['stats']);
+print_r([$benchmark['id'], $benchmark['stats']]);
+print("\n");
 
 $benchmarkFile = $executionPath . DIRECTORY_SEPARATOR . "benchmark.json";
 file_put_contents($benchmarkFile, json_encode($benchmark));
