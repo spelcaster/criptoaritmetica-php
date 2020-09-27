@@ -20,10 +20,11 @@ $allowSameParentCrossover = false;
 //$tm = 2; // TM1
 //$tm = 10; // TM2
 //$tm = 20; // TM3
-$tm = 1;
 
-//$selectionEngine = new RouletteWheelSelection($allowSameParentCrossover); // S1
-$selectionEngine = new RankSelection($allowSameParentCrossover); // S2
+$tm = 3;
+
+$selectionEngine = new RouletteWheelSelection($allowSameParentCrossover); // S1
+//$selectionEngine = new RankSelection($allowSameParentCrossover); // S2
 //$selectionEngine = new TournamentSelection($allowSameParentCrossover); // S3
 //$selectionEngine = new ElitismSelection($allowSameParentCrossover);
 
@@ -35,21 +36,21 @@ $crossoverOperator = new PartiallyMappedCrossoverOperator(); // C2
 $mutationOperator = new SwapMutationOperator();
 
 $ga = new GeneticAlgorithm(
-    240, //$populationSize
-    25, // $generationLimit
-    85, // $crossoverRate
+    200, //$populationSize
+    50, // $generationLimit
+    52, // $crossoverRate
     $tm, // $mutationRate
-    15 // $elitistPreserveRate
+    48 // $elitistPreserveRate
 );
 
-$ga->setReinsertionMethod('r1');  // R1
-//$ga->setReinsertionMethod('r2'); // R2
+//$ga->setReinsertionMethod('r1');  // R1
+$ga->setReinsertionMethod('r2'); // R2
 
-$ga->setProblem("send", "more", "money");
+//$ga->setProblem("send", "more", "money");
 //$ga->setProblem("eat", "that", "apple");
 //$ga->setProblem("cross", "roads", "danger");
 //$ga->setProblem("coca", "cola", "oasis");
-//$ga->setProblem("donald", "gerald", "robert");
+$ga->setProblem("donald", "gerald", "robert");
 
 $ga->setAllowGeneRepetition($allowGeneRepetition)
     ->setAllowSameParentCrossover($allowSameParentCrossover)
@@ -76,7 +77,8 @@ $benchmark = [
 ];
 
 for ($i = 0; $i < $totalExecution; $i++) {
-    print("Exectuion #{$i}\n");
+    print("Exectuion #{$i}\t");
+
     $result = [
         'id' => $i,
         'has_converged' => false,
@@ -100,6 +102,10 @@ for ($i = 0; $i < $totalExecution; $i++) {
     $result['generation_converged'] = $ga->getConvergedGeneration();
 
     $benchmark['run'][$i] = $result;
+
+    $hasConverged = $ga->hasConverged() ? 'yes' : 'no';
+
+    print("Has Converged: {$hasConverged}\n");
 
     if ($ga->hasConverged()) {
         ++$convergenceCounter;

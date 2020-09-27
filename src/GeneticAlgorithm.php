@@ -51,6 +51,10 @@ class GeneticAlgorithm
 
     protected $reinsertionMethod;
 
+    protected $maxValue;
+
+    protected $resultMap;
+
     /**
      * @param $populationSize = 100
      * @param $generationLimit = 50
@@ -83,6 +87,12 @@ class GeneticAlgorithm
         $this->populationSnapshot = [];
 
         $this->reinsertionMethod = 'r1';
+
+        $this->weightMap = [];
+
+        $this->maxValue = 0;
+
+        $this->resultMap = [];
     }
 
     protected function reset()
@@ -186,7 +196,61 @@ class GeneticAlgorithm
 
         $this->chromosomeSize = strlen($charMap);
 
+        $maxScore = strlen($charMap);
+
+        if (!$this->weightMap) {
+            for ($i = 0; $i < strlen($word3); $i++) {
+                $pos = strpos($this->charMap, $word3[$i]);
+
+                if (isset($this->weightMap[$pos])) {
+                    continue;
+                }
+
+                $this->weightMap[$pos] = $maxScore;
+                --$maxScore;
+            }
+
+            for ($i = 0; $i < $this->chromosomeSize; $i++) {
+                if (isset($this->weightMap[$i])) {
+                    continue;
+                }
+
+                $this->weightMap[$i] = $maxScore;
+                --$maxScore;
+            }
+
+            ksort($this->weightMap);
+        }
+
+        $this->setMaxValue($word3);
+
+        $this->setResultMap($word3);
+
         return $this;
+    }
+
+    protected function setMaxValue($word)
+    {
+        $value = 0;
+
+        $wordLen = strlen($word);
+        for ($i = 0; $i < $wordLen; $i++) {
+            $value += (pow(10, ($wordLen - $i - 1)) * 9);
+        }
+
+        $this->maxValue = $value + 1;
+    }
+
+    protected function setResultMap($word)
+    {
+        $rWord = strrev($word);
+
+        for ($i = 0; $i < strlen($word); $i++) {
+            $char = $rWord[$i];
+            $pos = strpos($this->charMap, $char);
+
+            $this->resultMap[$i] = $pos;
+        }
     }
 
     protected function generatePopulation()
@@ -249,9 +313,52 @@ class GeneticAlgorithm
 
     protected function fitness($word1, $word2, $word3)
     {
-        //return abs($word3 - ($word1 + $word2));
-        return 100000 - abs($word3 - ($word1 + $word2));
-        //return 100001 - abs($word3 - ($word1 + $word2));
+        return $this->maxValue - abs($word3 - ($word1 + $word2));
+    }
+
+    protected function fitness2($word1, $word2, $word3, $chromosome)
+    {
+        $r = $word1 + $word2;
+
+        $score = 1;
+
+        for ($i = 0; $i < count($this->resultMap); $i++) {
+            $dVal = $r / 10;
+            $value = $r - (intval($dVal) * 10);
+
+            $r = intval($dVal);
+
+            $rPos = $this->resultMap[$i];
+            if ($chromosome[$rPos] != $value) {
+                continue;
+            }
+
+            $score += 1;
+        }
+
+        return $score;
+    }
+
+    protected function fitness3($word1, $word2, $word3, $chromosome)
+    {
+        $r = $word1 + $word2;
+
+        $score = 1;
+        for ($i = 0; $i < count($this->resultMap); $i++) {
+            $dVal = $r / 10;
+            $value = $r - (intval($dVal) * 10);
+
+            $r = intval($dVal);
+
+            $rPos = $this->resultMap[$i];
+            if ($chromosome[$rPos] != $value) {
+                continue;
+            }
+
+            $score += $this->weightMap[$rPos];
+        }
+
+        return $score;
     }
 
     public function run()
@@ -270,8 +377,6 @@ class GeneticAlgorithm
 
         $generation = 0;
         while ($generation < $this->generationLimit) {
-            print("\tGeneration #{$generation}\n");
-
             $globalFitness = 0;
 
             //population fitness
@@ -284,13 +389,16 @@ class GeneticAlgorithm
                 $word2 = $this->getWordValue($this->problem[1], $chromosome);
                 $word3 = $this->getWordValue($this->problem[2], $chromosome);
 
-                $fitness = $this->fitness($word1, $word2, $word3);
+                //$fitness = $this->fitness($word1, $word2, $word3);
+                //$fitness = $this->fitness2($word1, $word2, $word3, $chromosome);
+                $fitness = $this->fitness3($word1, $word2, $word3, $chromosome);
 
                 if (($word1 + $word2) == $word3) {
                     if (!$this->hasConverged) { // test if has previously converged
                         $this->hasConverged = true;
                         $this->convergedGeneration = $generation;
                         $this->firstSolution = [
+                            'dictionary' => $this->charMap,
                             'chromosome' => $chromosome,
                             'w1' => $word1,
                             'w2' => $word2,
@@ -333,7 +441,9 @@ class GeneticAlgorithm
                 $word2 = $this->getWordValue($this->problem[1], $chromosome);
                 $word3 = $this->getWordValue($this->problem[2], $chromosome);
 
-                $fitness = $this->fitness($word1, $word2, $word3);
+                //$fitness = $this->fitness($word1, $word2, $word3);
+                //$fitness = $this->fitness2($word1, $word2, $word3, $chromosome);
+                $fitness = $this->fitness3($word1, $word2, $word3, $chromosome);
 
                 $offspringFitness[$i] = [
                     'chromosome' => $chromosome,
@@ -435,7 +545,8 @@ class GeneticAlgorithm
             $selectionMethod = new ElitismSelection();
 
             $selectionMethod->setPopulation(array_merge($population, $offspring))
-                ->setIsGlobal(true);
+                ->setIsGlobal(true)
+                ->setElitismRate($this->elitismPreserveRate);
 
             $selectedParents = $selectionMethod->select(0); // elitism rate will be used
 

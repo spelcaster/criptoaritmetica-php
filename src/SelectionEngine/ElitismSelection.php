@@ -17,6 +17,13 @@ class ElitismSelection extends SelectionEngineAbstract
         $this->elitismRate = 20 / 100;
     }
 
+    public function setElitismRate($elitismRate)
+    {
+        $this->elitismRate = $elitismRate;
+
+        return $this;
+    }
+
     protected function runSelection($selectionLimit = 0)
     {
         $prop = $this->getRelativeFitnessProp();
